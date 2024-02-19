@@ -1,5 +1,5 @@
 #![allow(unused)]
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Range};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct PieceTable {
@@ -79,8 +79,21 @@ impl PieceTable {
             .map(|t| txt.push_str(&t[piece.start..piece.end]));
     }
 
-    pub fn remove(&mut self, txt: String, cursor_idx: usize) {
-        todo!()
+    pub fn remove_char(&mut self, cursor_idx: usize) {
+        let current_idx = self.find_current_piece_idx(cursor_idx);
+        let mut current_piece = self.pieces.remove(current_idx);
+        if current_piece.start == cursor_idx {
+            current_piece.start = current_piece.start + 1;
+            self.pieces.insert(current_idx, current_piece);
+        } else if current_piece.end == cursor_idx {
+            current_piece.end = current_piece.end - 1;
+            self.pieces.insert(current_idx, current_piece);
+        } else {
+            let (first_piece, mut second_piece) = current_piece.split_at(cursor_idx);
+            second_piece.start = second_piece.start + 1;
+            self.pieces.insert(current_idx, first_piece);
+            self.pieces.insert(current_idx + 1, second_piece);
+        }
     }
 }
 
@@ -182,6 +195,19 @@ mod tests {
 
             // then
             assert_eq!(&txt, "some some line initial text");
+        }
+
+        #[test]
+        fn should_not_show_removed_text() {
+            // given
+            let mut table = PieceTable::from_text("initial text".into());
+            table.remove_char(7);
+
+            // when
+            let txt = table.project();
+
+            // then
+            assert_eq!(txt, "initialtext");
         }
     }
 }
