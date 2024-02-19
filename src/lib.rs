@@ -30,19 +30,36 @@ impl PieceTable {
         if self.original_buffer().is_empty() || self.original_buffer().len() == cursor_idx {
             // either text is empty or we are appending to it
             self.pieces.push(add_piece);
-        } else {
-            // we need to split the original piece into two and insert new in the middle
-            let current_idx = self.find_current_piece_idx(cursor_idx);
-            let mut first_piece = self.pieces.remove(current_idx);
-            let mut second_piece = first_piece.clone();
-
-            first_piece.end = cursor_idx;
-            second_piece.start = cursor_idx;
-
-            self.pieces.insert(current_idx, first_piece);
-            self.pieces.insert(current_idx + 1, add_piece);
-            self.pieces.insert(current_idx + 2, second_piece);
+            return;
         }
+
+        // we need to split the original piece into two and insert new in the middle
+        let current_idx = self.find_current_piece_idx(cursor_idx);
+        let mut first_piece = self.pieces.remove(current_idx);
+
+        let (first_piece, second_piece) = first_piece.split_at(cursor_idx);
+        self.pieces.insert(current_idx, first_piece);
+        self.pieces.insert(current_idx + 1, add_piece);
+        self.pieces.insert(current_idx + 2, second_piece);
+    }
+
+    fn add_buffer(&self) -> &String {
+        self.buffers.get(&Source::Add).expect("add buffer")
+    }
+
+    fn original_buffer(&self) -> &String {
+        self.buffers
+            .get(&Source::Original)
+            .expect("original buffer")
+    }
+
+    fn find_current_piece_idx(&self, cursor_idx: usize) -> usize {
+        self.pieces
+            .iter()
+            .enumerate()
+            .find(|(idx, p)| p.start <= cursor_idx && p.start < p.end)
+            .expect("current piece")
+            .0
     }
 
     pub fn remove(&mut self, txt: String, cursor_idx: usize) {
@@ -60,29 +77,10 @@ impl PieceTable {
         txt
     }
 
-    fn original_buffer(&self) -> &String {
-        self.buffers
-            .get(&Source::Original)
-            .expect("original buffer")
-    }
-
-    fn add_buffer(&self) -> &String {
-        self.buffers.get(&Source::Add).expect("add buffer")
-    }
-
     fn append_from(&self, txt: &mut String, piece: &Piece) {
         self.buffers
             .get(&piece.source)
             .map(|t| txt.push_str(&t[piece.start..piece.end]));
-    }
-
-    fn find_current_piece_idx(&self, cursor_idx: usize) -> usize {
-        self.pieces
-            .iter()
-            .enumerate()
-            .find(|(idx, p)| p.start <= cursor_idx && p.start < p.end)
-            .expect("current piece")
-            .0
     }
 }
 
@@ -109,6 +107,14 @@ impl Piece {
     fn new(start: usize, end: usize, source: Source) -> Self {
         Self { start, end, source }
     }
+
+    fn split_at(&self, idx: usize) -> (Piece, Piece) {
+        let mut first_piece = self.clone();
+        let mut second_piece = self.clone();
+        first_piece.end = idx;
+        second_piece.start = idx;
+        (first_piece, second_piece)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -123,42 +129,11 @@ mod tests {
 
     use maplit::hashmap;
 
-    mod add {
-        use super::*;
-
-        use crate::PieceTable;
-
-        #[test]
-        fn should_add_to_empty_table() {
-            // given
-            let mut table = PieceTable::default();
-            let new_line: String = "some line".into();
-
-            // when
-            table.add(new_line.clone(), 0);
-
-            // then
-            assert_eq!(
-                table,
-                PieceTable {
-                    buffers: hashmap! {
-                        Source::Original => "".into(),
-                        Source::Add => new_line.clone(),
-                    },
-                    pieces: vec![
-                        Piece::new(0, 0, Source::Original),
-                        Piece::new(0, new_line.len(), Source::Add)
-                    ],
-                }
-            );
-        }
-    }
-
     mod project {
         use super::*;
 
         #[test]
-        fn should_show_added_line() {
+        fn should_show_added_line_when_table_is_empty() {
             // given
             let mut table = PieceTable::default();
             let new_line: String = "some line".into();
@@ -170,6 +145,22 @@ mod tests {
 
             // then
             assert_eq!(txt, new_line);
+        }
+
+        #[test]
+        fn should_show_line_appended_at_the_end() {
+            // given
+            let initial_txt = "initial text";
+            let mut table = PieceTable::from_text(initial_txt.into());
+            let new_line: String = " some line".into();
+            let cursor = initial_txt.len();
+            table.add(new_line.clone(), cursor);
+
+            // when
+            let txt = table.project();
+
+            // then
+            assert_eq!(txt, format!("{initial_txt}{new_line}"));
         }
 
         #[test]
