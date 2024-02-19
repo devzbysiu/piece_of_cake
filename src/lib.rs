@@ -62,10 +62,6 @@ impl PieceTable {
             .0
     }
 
-    pub fn remove(&mut self, txt: String, cursor_idx: usize) {
-        todo!()
-    }
-
     pub fn project(&self) -> String {
         if self.pieces.is_empty() {
             return self.original_buffer().to_string();
@@ -82,17 +78,15 @@ impl PieceTable {
             .get(&piece.source)
             .map(|t| txt.push_str(&t[piece.start..piece.end]));
     }
+
+    pub fn remove(&mut self, txt: String, cursor_idx: usize) {
+        todo!()
+    }
 }
 
 impl Default for PieceTable {
     fn default() -> Self {
-        let mut buffers = HashMap::new();
-        buffers.insert(Source::Original, String::new());
-        buffers.insert(Source::Add, String::new());
-        Self {
-            buffers,
-            pieces: vec![Piece::new(0, 0, Source::Original)],
-        }
+        Self::from_text(String::new())
     }
 }
 
@@ -131,6 +125,18 @@ mod tests {
 
     mod project {
         use super::*;
+
+        #[test]
+        fn empty_table_projects_empty_string() {
+            // given
+            let table = PieceTable::default();
+
+            // when
+            let txt = table.project();
+
+            // then
+            assert_eq!(txt, String::new());
+        }
 
         #[test]
         fn should_show_added_line_when_table_is_empty() {
