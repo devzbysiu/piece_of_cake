@@ -226,6 +226,24 @@ mod tests {
         }
 
         #[test]
+        fn should_show_added_chars() -> Result<()> {
+            init_logger();
+            // given
+            let mut table = PieceTable::from_text("a");
+            let cursor = 1;
+            table.add("b", cursor)?;
+            table.add("c", cursor)?;
+
+            // when
+            let txt = table.project();
+
+            // then
+            assert_eq!(txt, "abc");
+
+            Ok(())
+        }
+
+        #[test]
         fn should_show_line_appended_at_the_end() -> Result<()> {
             init_logger();
             // given
