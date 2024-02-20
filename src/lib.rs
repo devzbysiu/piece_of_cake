@@ -1,57 +1,58 @@
 use log::trace;
-use std::collections::HashMap;
 use std::ops::Range;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct PieceTable {
-    buffers: HashMap<Source, String>,
+pub struct PieceTable<'a> {
+    original_buffer: &'a str,
+    add_buffer: String,
     pieces: Vec<Piece>,
 }
 
-impl PieceTable {
-    pub fn from_text(txt: String) -> Self {
-        let mut buffers = HashMap::new();
-        let txt_len = txt.len();
-        buffers.insert(Source::Original, txt);
-        buffers.insert(Source::Add, String::new());
+impl<'a> PieceTable<'a> {
+    pub fn from_text(txt: &'a str) -> Self {
         Self {
-            buffers,
-            pieces: vec![Piece::new(0, txt_len, Source::Original)],
+            original_buffer: txt,
+            add_buffer: String::new(),
+            pieces: vec![Piece::new(0, txt.len(), Source::Original)],
         }
     }
 
-    pub fn add(&mut self, txt: String, cursor_idx: usize) {
+    pub fn add(&mut self, txt: &str, cursor_idx: usize) {
         let start = self.add_buffer().len();
         let add_piece = Piece::new(start, start + txt.len(), Source::Add);
 
-        self.buffers
-            .entry(Source::Add)
-            .and_modify(|b| b.push_str(&txt));
+        self.extend_add_buffer(txt);
 
         if self.original_buffer().is_empty() || self.original_buffer().len() == cursor_idx {
             // either text is empty or we are appending to it
-            self.pieces.push(add_piece);
+            self.add_piece(add_piece);
             return;
         }
 
         // we need to split the original piece into two and insert new in the middle
-        let current_idx = self.find_current_piece_idx(cursor_idx);
-        let first_piece = self.pieces.remove(current_idx);
+        let current_piece_idx = self.find_current_piece_idx(cursor_idx);
+        let first_piece = self.remove_piece(current_piece_idx);
 
         let (first_piece, second_piece) = first_piece.split_at(cursor_idx);
-        self.pieces.insert(current_idx, first_piece);
-        self.pieces.insert(current_idx + 1, add_piece);
-        self.pieces.insert(current_idx + 2, second_piece);
+        self.insert_piece(current_piece_idx, first_piece);
+        self.insert_piece(current_piece_idx + 1, add_piece);
+        self.insert_piece(current_piece_idx + 2, second_piece);
     }
 
-    fn add_buffer(&self) -> &String {
-        self.buffers.get(&Source::Add).expect("add buffer")
+    fn add_buffer(&self) -> &str {
+        &self.add_buffer
     }
 
-    fn original_buffer(&self) -> &String {
-        self.buffers
-            .get(&Source::Original)
-            .expect("original buffer")
+    fn extend_add_buffer(&mut self, txt: &str) {
+        self.add_buffer.push_str(txt)
+    }
+
+    fn original_buffer(&self) -> &str {
+        &self.original_buffer
+    }
+
+    fn add_piece(&mut self, add_piece: Piece) {
+        self.pieces.push(add_piece)
     }
 
     fn find_current_piece_idx(&self, cursor_idx: usize) -> usize {
@@ -61,6 +62,15 @@ impl PieceTable {
             .find(|(_, p)| p.start <= cursor_idx && cursor_idx < p.end)
             .expect("current piece")
             .0
+    }
+
+    fn remove_piece(&mut self, idx: usize) -> Piece {
+        assert!(idx < self.pieces.len());
+        self.pieces.remove(idx)
+    }
+
+    fn insert_piece(&mut self, current_idx: usize, first_piece: Piece) {
+        self.pieces.insert(current_idx, first_piece)
     }
 
     pub fn project(&self) -> String {
@@ -75,9 +85,11 @@ impl PieceTable {
     }
 
     fn append_from(&self, txt: &mut String, piece: &Piece) {
-        self.buffers
-            .get(&piece.source)
-            .map(|t| txt.push_str(&t[piece.start..piece.end]));
+        let buff = match piece.source {
+            Source::Original => &self.original_buffer[piece.start..piece.end],
+            Source::Add => &self.add_buffer[piece.start..piece.end],
+        };
+        txt.push_str(buff);
     }
 
     pub fn remove_char(&mut self, cursor_idx: usize) {
@@ -120,9 +132,9 @@ impl PieceTable {
     }
 }
 
-impl Default for PieceTable {
+impl<'a> Default for PieceTable<'a> {
     fn default() -> Self {
-        Self::from_text(String::new())
+        Self::from_text("")
     }
 }
 
@@ -185,9 +197,9 @@ mod tests {
             init_logger();
             // given
             let mut table = PieceTable::default();
-            let new_line: String = "some line".into();
+            let new_line = "some line";
             let cursor = 0;
-            table.add(new_line.clone(), cursor);
+            table.add(new_line, cursor);
 
             // when
             let txt = table.project();
@@ -202,9 +214,9 @@ mod tests {
             // given
             let initial_txt = "initial text";
             let mut table = PieceTable::from_text(initial_txt.into());
-            let new_line: String = " some line".into();
+            let new_line = " some line";
             let cursor = initial_txt.len();
-            table.add(new_line.clone(), cursor);
+            table.add(new_line, cursor);
 
             // when
             let txt = table.project();
@@ -218,9 +230,9 @@ mod tests {
             init_logger();
             // given
             let mut table = PieceTable::from_text("some initial text".into());
-            let new_line: String = "some line ".into();
+            let new_line = "some line ";
             let cursor = 5;
-            table.add(new_line.clone(), cursor);
+            table.add(new_line, cursor);
 
             // when
             let txt = table.project();
