@@ -130,9 +130,6 @@ impl<'a> PieceTable<'a> {
 
     pub fn remove(&mut self, range: Range<usize>) -> Result<()> {
         for cursor_idx in range.rev() {
-            if cursor_idx >= self.original_buffer().len() {
-                continue;
-            }
             self.remove_char(cursor_idx)?;
         }
         Ok(())
@@ -229,21 +226,6 @@ mod tests {
         }
 
         #[test]
-        fn should_return_out_of_range_error_for_wrong_cursor() {
-            init_logger();
-            // given
-            let mut table = PieceTable::from_text("some text");
-            let new_line = "some line";
-            let wrong_cursor = usize::MAX;
-
-            // when
-            let res = table.add(new_line, wrong_cursor);
-
-            // then
-            assert_eq!(res, Err(ModificationError::OutOfRange));
-        }
-
-        #[test]
         fn should_show_line_appended_at_the_end() -> Result<()> {
             init_logger();
             // given
@@ -281,6 +263,21 @@ mod tests {
         }
 
         #[test]
+        fn should_return_out_of_range_error_when_adding_at_wrong_cursor() {
+            init_logger();
+            // given
+            let mut table = PieceTable::from_text("some text");
+            let new_line = "some line";
+            let wrong_cursor = usize::MAX;
+
+            // when
+            let res = table.add(new_line, wrong_cursor);
+
+            // then
+            assert_eq!(res, Err(ModificationError::OutOfRange));
+        }
+
+        #[test]
         fn should_not_show_removed_char() -> Result<()> {
             init_logger();
             // given
@@ -292,38 +289,6 @@ mod tests {
 
             // then
             assert_eq!(txt, "initialtext");
-
-            Ok(())
-        }
-
-        #[test]
-        fn should_not_show_removed_range() -> Result<()> {
-            init_logger();
-            // given
-            let mut table = PieceTable::from_text("initial text".into());
-            table.remove(7..12)?;
-
-            // when
-            let txt = table.project();
-
-            // then
-            assert_eq!(txt, "initial");
-
-            Ok(())
-        }
-
-        #[test]
-        fn should_skip_out_of_bounds_indices() -> Result<()> {
-            init_logger();
-            // given
-            let mut table = PieceTable::from_text("initial text".into());
-            table.remove(7..150)?;
-
-            // when
-            let txt = table.project();
-
-            // then
-            assert_eq!(txt, "initial");
 
             Ok(())
         }
@@ -366,6 +331,49 @@ mod tests {
             assert_eq!(txt, "initial");
 
             Ok(())
+        }
+
+        #[test]
+        fn should_return_out_of_range_error_when_removing_char_at_wrong_cursor() {
+            init_logger();
+            // given
+            let mut table = PieceTable::from_text("some text");
+            let wrong_cursor = usize::MAX;
+
+            // when
+            let res = table.remove_char(wrong_cursor);
+
+            // then
+            assert_eq!(res, Err(ModificationError::OutOfRange));
+        }
+
+        #[test]
+        fn should_not_show_removed_range() -> Result<()> {
+            init_logger();
+            // given
+            let mut table = PieceTable::from_text("initial text".into());
+            table.remove(7..12)?;
+
+            // when
+            let txt = table.project();
+
+            // then
+            assert_eq!(txt, "initial");
+
+            Ok(())
+        }
+
+        #[test]
+        fn should_return_out_of_range_error_when_removing_at_wrong_cursor() {
+            init_logger();
+            // given
+            let mut table = PieceTable::from_text("initial text".into());
+
+            // when
+            let res = table.remove(7..150);
+
+            // then
+            assert_eq!(res, Err(ModificationError::OutOfRange));
         }
     }
 }
