@@ -1,5 +1,7 @@
 #![allow(unused)]
-use std::{collections::HashMap, ops::Range};
+use log::trace;
+use std::collections::HashMap;
+use std::ops::Range;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct PieceTable {
@@ -57,7 +59,7 @@ impl PieceTable {
         self.pieces
             .iter()
             .enumerate()
-            .find(|(idx, p)| p.start <= cursor_idx && p.start < p.end)
+            .find(|(idx, p)| p.start <= cursor_idx && cursor_idx < p.end)
             .expect("current piece")
             .0
     }
@@ -81,18 +83,40 @@ impl PieceTable {
 
     pub fn remove_char(&mut self, cursor_idx: usize) {
         let current_idx = self.find_current_piece_idx(cursor_idx);
+        trace!("current piece idx: {current_idx}");
         let mut current_piece = self.pieces.remove(current_idx);
         if current_piece.start == cursor_idx {
+            trace!("modifying start");
+            trace!("before: {current_piece:#?}");
             current_piece.start = current_piece.start + 1;
+            trace!("after: {current_piece:#?}");
             self.pieces.insert(current_idx, current_piece);
         } else if current_piece.end == cursor_idx {
+            trace!("modifying end");
+            trace!("before: {current_piece:#?}");
             current_piece.end = current_piece.end - 1;
+            trace!("end: {current_piece:#?}");
             self.pieces.insert(current_idx, current_piece);
         } else {
+            trace!("splitting at {cursor_idx}");
+            trace!("before {current_piece:#?}");
             let (first_piece, mut second_piece) = current_piece.split_at(cursor_idx);
+            trace!("after {first_piece:#?} & {second_piece:#?}");
+            trace!("modifying in the middle");
+            trace!("before: {second_piece:#?}");
             second_piece.start = second_piece.start + 1;
+            trace!("after: {second_piece:#?}");
             self.pieces.insert(current_idx, first_piece);
             self.pieces.insert(current_idx + 1, second_piece);
+        }
+    }
+
+    pub fn remove(&mut self, range: Range<usize>) {
+        for cursor_idx in range.rev() {
+            if cursor_idx >= self.original_buffer().len() {
+                continue;
+            }
+            self.remove_char(cursor_idx);
         }
     }
 }
@@ -112,6 +136,7 @@ struct Piece {
 
 impl Piece {
     fn new(start: usize, end: usize, source: Source) -> Self {
+        assert!(start <= end);
         Self { start, end, source }
     }
 
@@ -134,13 +159,19 @@ enum Source {
 mod tests {
     use super::*;
 
+    use env_logger;
     use maplit::hashmap;
+
+    fn init_logger() {
+        let _ = env_logger::try_init();
+    }
 
     mod project {
         use super::*;
 
         #[test]
         fn empty_table_projects_empty_string() {
+            init_logger();
             // given
             let table = PieceTable::default();
 
@@ -153,6 +184,7 @@ mod tests {
 
         #[test]
         fn should_show_added_line_when_table_is_empty() {
+            init_logger();
             // given
             let mut table = PieceTable::default();
             let new_line: String = "some line".into();
@@ -168,6 +200,7 @@ mod tests {
 
         #[test]
         fn should_show_line_appended_at_the_end() {
+            init_logger();
             // given
             let initial_txt = "initial text";
             let mut table = PieceTable::from_text(initial_txt.into());
@@ -184,6 +217,7 @@ mod tests {
 
         #[test]
         fn should_show_line_inserted_in_the_middle() {
+            init_logger();
             // given
             let mut table = PieceTable::from_text("some initial text".into());
             let new_line: String = "some line ".into();
@@ -198,7 +232,8 @@ mod tests {
         }
 
         #[test]
-        fn should_not_show_removed_text() {
+        fn should_not_show_removed_char() {
+            init_logger();
             // given
             let mut table = PieceTable::from_text("initial text".into());
             table.remove_char(7);
@@ -208,6 +243,70 @@ mod tests {
 
             // then
             assert_eq!(txt, "initialtext");
+        }
+
+        #[test]
+        fn should_not_show_removed_range() {
+            init_logger();
+            // given
+            let mut table = PieceTable::from_text("initial text".into());
+            table.remove(7..12);
+
+            // when
+            let txt = table.project();
+
+            // then
+            assert_eq!(txt, "initial");
+        }
+
+        #[test]
+        fn should_skip_out_of_bounds_indices() {
+            init_logger();
+            // given
+            let mut table = PieceTable::from_text("initial text".into());
+            table.remove(7..150);
+
+            // when
+            let txt = table.project();
+
+            // then
+            assert_eq!(txt, "initial");
+        }
+
+        #[test]
+        fn should_remove_end_char_multiple_times() {
+            init_logger();
+            // given
+            let mut table = PieceTable::from_text("initial text".into());
+            table.remove_char(11);
+            table.remove_char(10);
+            table.remove_char(9);
+            table.remove_char(8);
+            table.remove_char(7);
+
+            // when
+            let txt = table.project();
+
+            // then
+            assert_eq!(txt, "initial");
+        }
+
+        #[test]
+        fn should_delete_consecutive_chars() {
+            init_logger();
+            // given
+            let mut table = PieceTable::from_text("initial text".into());
+            table.remove_char(7);
+            table.remove_char(8);
+            table.remove_char(9);
+            table.remove_char(10);
+            table.remove_char(11);
+
+            // when
+            let txt = table.project();
+
+            // then
+            assert_eq!(txt, "initial");
         }
     }
 }
