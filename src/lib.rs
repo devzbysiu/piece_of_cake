@@ -1,4 +1,3 @@
-#![allow(unused)]
 use log::trace;
 use std::collections::HashMap;
 use std::ops::Range;
@@ -37,7 +36,7 @@ impl PieceTable {
 
         // we need to split the original piece into two and insert new in the middle
         let current_idx = self.find_current_piece_idx(cursor_idx);
-        let mut first_piece = self.pieces.remove(current_idx);
+        let first_piece = self.pieces.remove(current_idx);
 
         let (first_piece, second_piece) = first_piece.split_at(cursor_idx);
         self.pieces.insert(current_idx, first_piece);
@@ -59,7 +58,7 @@ impl PieceTable {
         self.pieces
             .iter()
             .enumerate()
-            .find(|(idx, p)| p.start <= cursor_idx && cursor_idx < p.end)
+            .find(|(_, p)| p.start <= cursor_idx && cursor_idx < p.end)
             .expect("current piece")
             .0
     }
@@ -140,7 +139,7 @@ impl Piece {
         Self { start, end, source }
     }
 
-    fn split_at(&self, idx: usize) -> (Piece, Piece) {
+    fn split_at(self, idx: usize) -> (Piece, Piece) {
         let mut first_piece = self.clone();
         let mut second_piece = self.clone();
         first_piece.end = idx;
@@ -160,7 +159,6 @@ mod tests {
     use super::*;
 
     use env_logger;
-    use maplit::hashmap;
 
     fn init_logger() {
         let _ = env_logger::try_init();
