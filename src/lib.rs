@@ -15,6 +15,7 @@ pub struct PieceTable<'a> {
     original_buffer: &'a str,
     add_buffer: String,
     pieces: Vec<Piece>,
+    undo: Vec<(usize, Piece)>,
 }
 
 impl<'a> PieceTable<'a> {
@@ -23,6 +24,7 @@ impl<'a> PieceTable<'a> {
             original_buffer: txt,
             add_buffer: String::new(),
             pieces: vec![Piece::new(0, txt.len(), Source::Original)],
+            undo: Vec::new(),
         }
     }
 
@@ -134,6 +136,17 @@ impl<'a> PieceTable<'a> {
             self.remove_char(cursor_idx)?;
         }
         Ok(())
+    }
+
+    pub fn undo(&mut self) {
+        let last_idx = self.pieces.len() - 1;
+        let last_piece = self.pieces.remove(last_idx);
+        self.undo.push((last_idx, last_piece));
+    }
+
+    pub fn redo(&mut self) {
+        let (last_op_idx, last_op) = self.undo.remove(self.undo.len() - 1);
+        self.pieces.insert(last_op_idx, last_op);
     }
 
     pub fn project(&self) -> String {
@@ -485,6 +498,57 @@ mod tests {
 
             // then
             assert_eq!(res, Err(ModificationError::OutOfRange));
+        }
+    }
+
+    mod undo {
+        use super::*;
+
+        #[test]
+        fn shuld_undo_last_operation() -> Result<()> {
+            init_logger();
+            // given
+            let initial_txt = "initial text";
+            let mut table = PieceTable::from_text(initial_txt);
+            let new_line = " added txt";
+            table.add(new_line, initial_txt.len())?;
+            assert_eq!(table.pieces.len(), 2);
+            assert!(table.undo.is_empty());
+
+            // when
+            table.undo();
+
+            // then
+            assert_eq!(table.pieces.len(), 1);
+            assert_eq!(table.undo.len(), 1);
+
+            Ok(())
+        }
+    }
+
+    mod redo {
+        use super::*;
+
+        #[test]
+        fn shuld_redo_last_operation() -> Result<()> {
+            init_logger();
+            // given
+            let initial_txt = "initial text";
+            let mut table = PieceTable::from_text(initial_txt);
+            let new_line = " added txt";
+            table.add(new_line, initial_txt.len())?;
+            table.undo();
+            assert_eq!(table.pieces.len(), 1);
+            assert_eq!(table.undo.len(), 1);
+
+            // when
+            table.redo();
+
+            // then
+            assert_eq!(table.pieces.len(), 2);
+            assert!(table.undo.is_empty());
+
+            Ok(())
         }
     }
 
