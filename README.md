@@ -37,8 +37,10 @@
 
 # <p id="about">About</p>
 
-**piece_of_cake** implements (piece table)[https://en.wikipedia.org/wiki/Piece_table] data structure.
-I made this purely for learning purposes. **I don't recommend using this in production.**
+**piece_of_cake** implements [piece table](https://en.wikipedia.org/wiki/Piece_table) data structure.
+I made this purely for learning purposes.
+
+**I don't recommend using this in production.**
 
 # <p id="installation">Installation</p>
 
