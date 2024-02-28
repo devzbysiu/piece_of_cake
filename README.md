@@ -3,7 +3,7 @@
   <h1><code>piece-of-cake</code></h1>
 
   <h3>
-    <strong>Efficient text buffer</strong>
+    <strong>Piece Table text buffer implementation</strong>
   </h3>
 
   <p>
