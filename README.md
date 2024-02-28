@@ -46,7 +46,7 @@ I made this purely for learning purposes.
 
 Add
 ```toml
-piece_of_cake = "0.0.1"
+piece_of_cake = { git = "https://github.com/devzbysiu/piece_of_cake" }
 ```
 to your dependencies.
 
