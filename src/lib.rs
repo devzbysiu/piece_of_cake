@@ -1,3 +1,5 @@
+#![allow(clippy::missing_errors_doc)]
+
 use log::{error, trace};
 use std::ops::Range;
 use thiserror::Error;
@@ -19,6 +21,7 @@ pub struct PieceTable<'a> {
 }
 
 impl<'a> PieceTable<'a> {
+    #[must_use]
     pub fn from_text(txt: &'a str) -> Self {
         Self {
             original_buffer: txt,
@@ -60,15 +63,15 @@ impl<'a> PieceTable<'a> {
     }
 
     fn extend_add_buffer(&mut self, txt: &str) {
-        self.add_buffer.push_str(txt)
+        self.add_buffer.push_str(txt);
     }
 
     fn original_buffer(&self) -> &str {
-        &self.original_buffer
+        self.original_buffer
     }
 
     fn add_piece(&mut self, add_piece: Piece) {
-        self.pieces.push(add_piece)
+        self.pieces.push(add_piece);
     }
 
     fn find_current_piece_idx(&self, cursor_idx: usize) -> Option<usize> {
@@ -85,7 +88,7 @@ impl<'a> PieceTable<'a> {
     }
 
     fn insert_piece(&mut self, current_idx: usize, first_piece: Piece) {
-        self.pieces.insert(current_idx, first_piece)
+        self.pieces.insert(current_idx, first_piece);
     }
 
     fn append_from(&self, txt: &mut String, piece: &Piece) {
@@ -111,20 +114,20 @@ impl<'a> PieceTable<'a> {
             let (first_piece, mut second_piece) = current_piece.split_at(cursor_idx);
             trace!("after {first_piece:#?} & {second_piece:#?}");
             trace!("before: {second_piece:#?}");
-            second_piece.start = second_piece.start + 1;
+            second_piece.start += 1;
             trace!("after: {second_piece:#?}");
             self.insert_piece(current_piece_idx, first_piece);
             self.insert_piece(current_piece_idx + 1, second_piece);
         } else if current_piece.start == cursor_idx {
             trace!("modifying start");
             trace!("before: {current_piece:#?}");
-            current_piece.start = current_piece.start + 1;
+            current_piece.start += 1;
             trace!("after: {current_piece:#?}");
             self.insert_piece(current_piece_idx, current_piece);
         } else if current_piece.end - 1 == cursor_idx {
             trace!("modifying end");
             trace!("before: {current_piece:#?}");
-            current_piece.end = current_piece.end - 1;
+            current_piece.end -= 1;
             trace!("after: {current_piece:#?}");
             self.insert_piece(current_piece_idx, current_piece);
         }
@@ -149,6 +152,7 @@ impl<'a> PieceTable<'a> {
         self.pieces.insert(last_op_idx, last_op);
     }
 
+    #[must_use]
     pub fn project(&self) -> String {
         if self.pieces.is_empty() {
             return self.original_buffer().to_string();
@@ -198,8 +202,6 @@ enum Source {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use env_logger;
 
     fn init_logger() {
         let _ = env_logger::try_init();
@@ -701,10 +703,10 @@ mod tests {
         fn should_remove_chars_at_the_end() -> Result<()> {
             init_logger();
             // given
-            let text = "initial text";
-            let mut table = PieceTable::from_text(text);
-            table.remove_char(text.len() - 1)?;
-            table.remove_char(text.len() - 2)?;
+            let initial_text = "initial text";
+            let mut table = PieceTable::from_text(initial_text);
+            table.remove_char(initial_text.len() - 1)?;
+            table.remove_char(initial_text.len() - 2)?;
 
             // when
             let txt = table.project();
