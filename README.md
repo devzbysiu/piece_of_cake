@@ -7,7 +7,7 @@
   </h3>
 
   <p>
-    <img src="https://img.shields.io/github/actions/workflow/status/devzbysiu/piece-of-cake/ci.yml?style=for-the-badge" alt="CI status badge" />
+    <img src="https://img.shields.io/github/actions/workflow/status/devzbysiu/piece_of_cake/ci.yml?style=for-the-badge" alt="CI status badge" />
     <a href="https://codecov.io/gh/devzbysiu/piece-of-cake">
       <img src="https://img.shields.io/codecov/c/github/devzbysiu/piece-of-cake?style=for-the-badge" alt="Code coverage"/>
     </a>
