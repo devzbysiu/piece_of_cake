@@ -12,12 +12,7 @@
     <a href="https://codecov.io/gh/devzbysiu/piece-of-cake">
       <img src="https://img.shields.io/codecov/c/github/devzbysiu/piece-of-cake?style=for-the-badge" alt="Code coverage"/>
     </a>
-    <a href="https://crates.io/crates/piece-of-cake">
-      <img src="https://img.shields.io/crates/l/piece-of-cake?style=for-the-badge" alt="License"/>
-    </a>
-    <a href="https://docs.rs/piece-of-cake">
-      <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=for-the-badge" alt="docs.rs docs" />
-    </a>
+    <img src="https://img.shields.io/crates/l/je?style=for-the-badge" alt="License"/>
   </p>
 
   <h3>
