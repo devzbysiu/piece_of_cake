@@ -1,6 +1,6 @@
 <div align="center">
 
-  <h1><code>piece-of-cake</code></h1>
+  <h1><code>piece_of_cake</code></h1>
 
   <h3>
     <strong>Piece Table text buffer implementation</strong>
@@ -9,7 +9,7 @@
   <p>
     <img src="https://img.shields.io/github/actions/workflow/status/devzbysiu/piece_of_cake/ci.yml?style=for-the-badge" alt="CI status badge" />
     <a href="https://codecov.io/gh/devzbysiu/piece-of-cake">
-      <img src="https://img.shields.io/codecov/c/github/devzbysiu/piece-of-cake?style=for-the-badge" alt="Code coverage"/>
+      <img src="https://img.shields.io/codecov/c/github/devzbysiu/piece_of_cake?style=for-the-badge" alt="Code coverage"/>
     </a>
     <img src="https://img.shields.io/crates/l/je?style=for-the-badge" alt="License"/>
   </p>

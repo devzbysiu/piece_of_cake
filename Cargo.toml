@@ -14,7 +14,7 @@
 # - create git tag with version number
 #
 [package]
-name = "piece-of-cake"
+name = "piece_of_cake"
 version = "0.1.0"
 authors = ["Bartosz Zbytniewski <bartosz.zbytniewski.dev@gmail.com>"]
 edition = "2021"
