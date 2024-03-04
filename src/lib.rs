@@ -91,14 +91,6 @@ impl<'a> PieceTable<'a> {
         self.pieces.insert(current_idx, first_piece);
     }
 
-    fn append_from(&self, txt: &mut String, piece: &Piece) {
-        let buff = match piece.source {
-            Source::Original => &self.original_buffer[piece.start..piece.end],
-            Source::Add => &self.add_buffer[piece.start..piece.end],
-        };
-        txt.push_str(buff);
-    }
-
     pub fn remove_char(&mut self, cursor_idx: usize) -> Result<()> {
         let Some(current_piece_idx) = self.find_current_piece_idx(cursor_idx) else {
             error!("cursor outside of the text");
@@ -162,6 +154,25 @@ impl<'a> PieceTable<'a> {
             self.append_from(&mut txt, piece);
         }
         txt
+    }
+
+    fn append_from(&self, txt: &mut String, piece: &Piece) {
+        let buff = match piece.source {
+            Source::Original => &self.original_buffer[piece.start..piece.end],
+            Source::Add => &self.add_buffer[piece.start..piece.end],
+        };
+        txt.push_str(buff);
+    }
+
+    pub fn len(&self) -> usize {
+        if self.pieces.is_empty() {
+            return self.original_buffer().len();
+        }
+        let mut len = 0;
+        for piece in &self.pieces {
+            len += piece.end - piece.start;
+        }
+        len
     }
 }
 
@@ -729,6 +740,55 @@ mod tests {
 
             // then
             assert_eq!(txt, "initial");
+
+            Ok(())
+        }
+    }
+
+    mod len {
+        use super::*;
+
+        #[test]
+        fn empty_piece_table_has_len_zero() {
+            init_logger();
+            // given
+            let piece_table = PieceTable::from_text("");
+
+            // when
+            let len = piece_table.len();
+
+            // then
+            assert_eq!(len, 0);
+        }
+
+        #[test]
+        fn piece_table_from_text_has_len_equal_to_initial_text() {
+            init_logger();
+            // given
+            let initial_txt = "initial text";
+            let piece_table = PieceTable::from_text(&initial_txt);
+
+            // when
+            let len = piece_table.len();
+
+            // then
+            assert_eq!(len, initial_txt.len());
+        }
+
+        #[test]
+        fn len_takes_into_account_modifiec_piece_table() -> Result<()> {
+            init_logger();
+            // given
+            let mut table = PieceTable::from_text("a");
+            let cursor = 1;
+            table.add("b", cursor)?;
+            table.add("c", cursor)?;
+
+            // when
+            let len = table.len();
+
+            // then
+            assert_eq!(len, 3);
 
             Ok(())
         }
