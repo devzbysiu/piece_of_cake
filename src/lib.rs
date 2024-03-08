@@ -174,6 +174,11 @@ impl<'a> PieceTable<'a> {
         }
         len
     }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl<'a> Default for PieceTable<'a> {
@@ -745,7 +750,7 @@ mod tests {
         }
     }
 
-    mod len {
+    mod len_and_empty {
         use super::*;
 
         #[test]
@@ -766,7 +771,7 @@ mod tests {
             init_logger();
             // given
             let initial_txt = "initial text";
-            let piece_table = PieceTable::from_text(&initial_txt);
+            let piece_table = PieceTable::from_text(initial_txt);
 
             // when
             let len = piece_table.len();
@@ -791,6 +796,32 @@ mod tests {
             assert_eq!(len, 3);
 
             Ok(())
+        }
+
+        #[test]
+        fn empty_piece_table_is_empty() {
+            init_logger();
+            // given
+            let piece_table = PieceTable::from_text("");
+
+            // when
+            let is_empty = piece_table.is_empty();
+
+            // then
+            assert!(is_empty);
+        }
+
+        #[test]
+        fn piece_table_from_text_is_not_empty() {
+            init_logger();
+            // given
+            let piece_table = PieceTable::from_text("initial text");
+
+            // when
+            let is_empty = piece_table.is_empty();
+
+            // then
+            assert!(!is_empty);
         }
     }
 }
