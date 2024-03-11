@@ -39,13 +39,13 @@ impl<'a> PieceTable<'a> {
             return;
         }
 
-        // we need to split the original piece into two and insert new in the middle
         trace!("inserting text in the middle");
         let (piece_idx, _) = self.find_piece_idx(cursor_idx);
 
         self.extend_add_buffer(c);
         let current_piece = self.piece(piece_idx);
         if current_piece.len() > 1 {
+            // we need to split the original piece into two and insert new in the middle
             let current_piece = self.remove_piece(piece_idx);
             let (first_piece, second_piece) = current_piece.split_at(cursor_idx);
             self.insert_piece(piece_idx, first_piece);
@@ -121,9 +121,7 @@ impl<'a> PieceTable<'a> {
         let mut i = range.len() - 1;
         for cursor_idx in range.rev() {
             chars[i] = self.remove_char(cursor_idx)?;
-            if i > 1 {
-                i -= 1;
-            }
+            i = i.saturating_sub(1);
         }
         Some(chars.into_iter().collect())
     }
@@ -236,7 +234,7 @@ mod tests {
         let _ = env_logger::try_init();
     }
 
-    mod add {
+    mod insert_char {
         use super::*;
 
         #[test]
@@ -374,9 +372,10 @@ mod tests {
             let mut table = PieceTable::from_text(initial_txt);
 
             // when
-            table.remove_char(7);
+            let removed = table.remove_char(7);
 
             // then
+            assert_eq!(removed, Some(' '));
             assert_eq!(table.pieces.len(), 2);
             assert_eq!(
                 table.pieces,
@@ -400,11 +399,14 @@ mod tests {
             let remove_count = 5;
 
             // when
+            let mut removed_chars = Vec::new();
             for i in 0..remove_count {
-                table.remove_char(11 - i);
+                let removed = table.remove_char(11 - i);
+                removed_chars.push(removed.unwrap());
             }
 
             // then
+            assert_eq!(removed_chars, ['t', 'x', 'e', 't', ' ']);
             assert_eq!(table.pieces.len(), 1);
             assert_eq!(
                 table.pieces,
@@ -425,11 +427,14 @@ mod tests {
             let remove_count = 5;
 
             // when
+            let mut removed_chars = Vec::new();
             for _ in 0..remove_count {
-                table.remove_char(7);
+                let removed = table.remove_char(7);
+                removed_chars.push(removed.unwrap());
             }
 
             // then
+            assert_eq!(removed_chars, [' ', 't', 'e', 'x', 't']);
             assert_eq!(table.pieces.len(), 2);
             assert_eq!(
                 table.pieces,
@@ -449,10 +454,12 @@ mod tests {
             let mut table = PieceTable::from_text(initial_txt);
 
             // when
-            table.remove_char(initial_txt.len() - 1);
-            table.remove_char(initial_txt.len() - 2);
+            let removed1 = table.remove_char(initial_txt.len() - 1);
+            let removed2 = table.remove_char(initial_txt.len() - 2);
 
             // then
+            assert_eq!(removed1, Some('t'));
+            assert_eq!(removed2, Some('x'));
             assert_eq!(table.pieces.len(), 1);
             assert_eq!(
                 table.pieces,
@@ -472,9 +479,10 @@ mod tests {
             let mut table = PieceTable::from_text(initial_txt);
 
             // when
-            table.remove(7..12);
+            let removed = table.remove(7..12);
 
             // then
+            assert_eq!(removed, Some(" text".to_string()));
             assert_eq!(table.pieces.len(), 1);
             assert_eq!(table.pieces, [Piece::new(0, 7, Source::Original)]);
         }
