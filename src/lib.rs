@@ -17,7 +17,7 @@ impl<'a> PieceTable<'a> {
         Self {
             original_buffer: txt,
             add_buffer: String::new(),
-            pieces: vec![Piece::new(0, txt.len(), Source::Original)],
+            pieces: vec![Piece::new(0..txt.len(), Source::Original)],
             undo: Vec::new(),
         }
     }
@@ -29,7 +29,7 @@ impl<'a> PieceTable<'a> {
         }
 
         let start = self.add_buffer().len();
-        let add_piece = Piece::new(start, start + 1, Source::Add);
+        let add_piece = Piece::new(start..start + 1, Source::Add);
 
         if cursor_idx == len {
             // we are appending txt at the end
@@ -98,19 +98,19 @@ impl<'a> PieceTable<'a> {
         let char = self.char_at(cursor_idx);
         let (piece_idx, offset) = self.find_piece_idx(cursor_idx);
         let current_piece = self.remove_piece(piece_idx);
-        let real_idx = current_piece.start + offset;
-        if current_piece.start < real_idx && real_idx < current_piece.end - 1 {
+        let real_idx = current_piece.range.start + offset;
+        if current_piece.range.start < real_idx && real_idx < current_piece.range.end - 1 {
             let (first_piece, mut second_piece) = current_piece.split_at(cursor_idx);
-            second_piece.start += 1;
+            second_piece.range.start += 1;
             self.insert_piece(piece_idx, first_piece);
             self.insert_piece(piece_idx + 1, second_piece);
-        } else if current_piece.start == real_idx {
+        } else if current_piece.range.start == real_idx {
             let mut current_piece = current_piece;
-            current_piece.start += 1;
+            current_piece.range.start += 1;
             self.insert_piece(piece_idx, current_piece);
         } else {
             let mut current_piece = current_piece;
-            current_piece.end -= 1;
+            current_piece.range.end -= 1;
             self.insert_piece(piece_idx, current_piece);
         }
         Some(char)
@@ -151,8 +151,8 @@ impl<'a> PieceTable<'a> {
 
     fn append_from(&self, txt: &mut String, piece: &Piece) {
         let buff = match piece.source {
-            Source::Original => &self.original_buffer[piece.start..piece.end],
-            Source::Add => &self.add_buffer[piece.start..piece.end],
+            Source::Original => &self.original_buffer[piece.range.clone()],
+            Source::Add => &self.add_buffer[piece.range.clone()],
         };
         txt.push_str(buff);
     }
@@ -163,7 +163,7 @@ impl<'a> PieceTable<'a> {
         }
         let mut len = 0;
         for piece in &self.pieces {
-            len += piece.end - piece.start;
+            len += piece.range.len();
         }
         len
     }
@@ -184,7 +184,7 @@ impl<'a> PieceTable<'a> {
             Source::Original => self.original_buffer(),
             Source::Add => self.add_buffer(),
         };
-        buff.chars().nth(piece.start + offset).unwrap()
+        buff.chars().nth(piece.range.start + offset).unwrap()
     }
 }
 
@@ -196,27 +196,25 @@ impl<'a> Default for PieceTable<'a> {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct Piece {
-    start: usize,
-    end: usize,
+    range: Range<usize>,
     source: Source,
 }
 
 impl Piece {
-    fn new(start: usize, end: usize, source: Source) -> Self {
-        assert!(start <= end);
-        Self { start, end, source }
+    fn new(range: Range<usize>, source: Source) -> Self {
+        Self { range, source }
     }
 
     fn split_at(self, idx: usize) -> (Piece, Piece) {
         let mut first_piece = self.clone();
         let mut second_piece = self.clone();
-        first_piece.end = idx;
-        second_piece.start = idx;
+        first_piece.range.end = idx;
+        second_piece.range.start = idx;
         (first_piece, second_piece)
     }
 
     fn len(&self) -> usize {
-        self.end - self.start
+        self.range.len()
     }
 }
 
@@ -253,8 +251,8 @@ mod tests {
             assert_eq!(
                 table.pieces,
                 [
-                    Piece::new(0, 0, Source::Original),
-                    Piece::new(0, 1, Source::Add),
+                    Piece::new(0..0, Source::Original),
+                    Piece::new(0..1, Source::Add),
                 ]
             );
         }
@@ -275,9 +273,9 @@ mod tests {
             assert_eq!(
                 table.pieces,
                 [
-                    Piece::new(0, 1, Source::Original),
-                    Piece::new(1, 2, Source::Add),
-                    Piece::new(0, 1, Source::Add),
+                    Piece::new(0..1, Source::Original),
+                    Piece::new(1..2, Source::Add),
+                    Piece::new(0..1, Source::Add),
                 ]
             );
         }
@@ -298,9 +296,9 @@ mod tests {
             assert_eq!(
                 table.pieces,
                 [
-                    Piece::new(0, 1, Source::Original),
-                    Piece::new(0, 1, Source::Add),
-                    Piece::new(1, 2, Source::Add),
+                    Piece::new(0..1, Source::Original),
+                    Piece::new(0..1, Source::Add),
+                    Piece::new(1..2, Source::Add),
                 ]
             );
         }
@@ -322,8 +320,8 @@ mod tests {
             assert_eq!(
                 table.pieces,
                 [
-                    Piece::new(0, initial_txt.len(), Source::Original),
-                    Piece::new(0, 1, Source::Add),
+                    Piece::new(0..initial_txt.len(), Source::Original),
+                    Piece::new(0..1, Source::Add),
                 ]
             );
         }
@@ -347,11 +345,10 @@ mod tests {
             assert_eq!(
                 table.pieces,
                 [
-                    Piece::new(0, txt_before.len(), Source::Original),
-                    Piece::new(0, 1, Source::Add),
+                    Piece::new(0..txt_before.len(), Source::Original),
+                    Piece::new(0..1, Source::Add),
                     Piece::new(
-                        txt_before.len(),
-                        txt_before.len() + txt_after.len(),
+                        txt_before.len()..txt_before.len() + txt_after.len(),
                         Source::Original
                     ),
                 ]
@@ -380,10 +377,9 @@ mod tests {
             assert_eq!(
                 table.pieces,
                 [
-                    Piece::new(0, txt_before.len(), Source::Original),
+                    Piece::new(0..txt_before.len(), Source::Original),
                     Piece::new(
-                        txt_before.len() + 1,
-                        txt_before.len() + 1 + txt_after.len(),
+                        (txt_before.len() + 1)..txt_before.len() + 1 + txt_after.len(),
                         Source::Original
                     ),
                 ]
@@ -411,8 +407,7 @@ mod tests {
             assert_eq!(
                 table.pieces,
                 [Piece::new(
-                    0,
-                    initial_text.len() - remove_count,
+                    0..initial_text.len() - remove_count,
                     Source::Original
                 )]
             );
@@ -439,9 +434,9 @@ mod tests {
             assert_eq!(
                 table.pieces,
                 [
-                    Piece::new(0, 7, Source::Original),
+                    Piece::new(0..7, Source::Original),
                     // TODO: Can I remove piece with no characters? (empty range)
-                    Piece::new(initial_text.len(), initial_text.len(), Source::Original),
+                    Piece::new(initial_text.len()..initial_text.len(), Source::Original),
                 ]
             );
         }
@@ -463,7 +458,7 @@ mod tests {
             assert_eq!(table.pieces.len(), 1);
             assert_eq!(
                 table.pieces,
-                [Piece::new(0, initial_txt.len() - 2, Source::Original)]
+                [Piece::new(0..(initial_txt.len() - 2), Source::Original)]
             );
         }
     }
@@ -484,7 +479,7 @@ mod tests {
             // then
             assert_eq!(removed, Some(" text".to_string()));
             assert_eq!(table.pieces.len(), 1);
-            assert_eq!(table.pieces, [Piece::new(0, 7, Source::Original)]);
+            assert_eq!(table.pieces, [Piece::new(0..7, Source::Original)]);
         }
     }
 
