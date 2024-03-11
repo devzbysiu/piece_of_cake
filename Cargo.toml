@@ -28,8 +28,8 @@ homepage = ""
 documentation = ""
 
 [dependencies]
-log = "0.4.20"
+log = "0.4.21"
 
 [dev-dependencies]
-env_logger = "0.11.2"
+env_logger = "0.11.3"
 maplit = "1.0.2"
