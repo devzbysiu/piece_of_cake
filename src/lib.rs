@@ -6,7 +6,7 @@ use std::ops::Range;
 #[derive(Debug, PartialEq, Eq)]
 pub struct PieceTable<'a> {
     original_buffer: &'a str,
-    add_buffer: String,
+    addition_buffer: String,
     pieces: Vec<Piece>,
     undo: Vec<(usize, Piece)>,
 }
@@ -16,7 +16,7 @@ impl<'a> PieceTable<'a> {
     pub fn from_text(txt: &'a str) -> Self {
         Self {
             original_buffer: txt,
-            add_buffer: String::new(),
+            addition_buffer: String::new(),
             pieces: vec![Piece::new(0..txt.len(), Source::Original)],
             undo: Vec::new(),
         }
@@ -28,13 +28,14 @@ impl<'a> PieceTable<'a> {
             panic!("insertion index (is {cursor_idx}) should be <= len (is {len})");
         }
 
-        let start = self.add_buffer().len();
+        let start = self.addition_buffer().len();
         let add_piece = Piece::new(start..start + 1, Source::Add);
+
+        self.extend_addition_buffer(c);
 
         if cursor_idx == len {
             // we are appending txt at the end
             trace!("text empty or appending at the end");
-            self.extend_add_buffer(c);
             self.append_piece(add_piece);
             return;
         }
@@ -42,7 +43,6 @@ impl<'a> PieceTable<'a> {
         trace!("inserting text in the middle");
         let (piece_idx, _) = self.find_piece_idx(cursor_idx);
 
-        self.extend_add_buffer(c);
         let current_piece = self.piece(piece_idx);
         if current_piece.len() > 1 {
             // we need to split the original piece into two and insert new in the middle
@@ -56,12 +56,12 @@ impl<'a> PieceTable<'a> {
         }
     }
 
-    fn add_buffer(&self) -> &str {
-        &self.add_buffer
+    fn addition_buffer(&self) -> &str {
+        &self.addition_buffer
     }
 
-    fn extend_add_buffer(&mut self, c: char) {
-        self.add_buffer.push(c);
+    fn extend_addition_buffer(&mut self, c: char) {
+        self.addition_buffer.push(c);
     }
 
     fn original_buffer(&self) -> &str {
@@ -152,7 +152,7 @@ impl<'a> PieceTable<'a> {
     fn append_from(&self, txt: &mut String, piece: &Piece) {
         let buff = match piece.source {
             Source::Original => &self.original_buffer[piece.range.clone()],
-            Source::Add => &self.add_buffer[piece.range.clone()],
+            Source::Add => &self.addition_buffer[piece.range.clone()],
         };
         txt.push_str(buff);
     }
@@ -182,7 +182,7 @@ impl<'a> PieceTable<'a> {
         let piece = self.piece(piece_idx);
         let buff = match piece.source {
             Source::Original => self.original_buffer(),
-            Source::Add => self.add_buffer(),
+            Source::Add => self.addition_buffer(),
         };
         buff.chars().nth(piece.range.start + offset).unwrap()
     }
